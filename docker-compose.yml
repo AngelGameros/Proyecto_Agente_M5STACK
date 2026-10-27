@@ -1,0 +1,65 @@
+services:
+  minio:
+    # minio/minio fue retirado de Docker Hub; se usa el build de Chainguard (mismo servidor MinIO)
+    image: cgr.dev/chainguard/minio:latest
+    container_name: lab11-minio
+    user: root
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # Consola web
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Define MINIO_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Define MINIO_SECRET_KEY in .env}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: lab11-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE:?Define POSTGRES_DATABASE in .env}
+      POSTGRES_USER: ${POSTGRES_USERNAME:?Define POSTGRES_USERNAME in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:alpine
+    container_name: lab11-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  evolution-api:
+    image: evoapicloud/evolution-api:latest
+    container_name: lab11-evolution-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - SERVER_URL=http://localhost:8080
+      - DOCKER_ENV=true
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:?Define EVOLUTION_API_KEY in .env}
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USERNAME:?Define POSTGRES_USERNAME in .env}:${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DATABASE:?Define POSTGRES_DATABASE in .env}?schema=public
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379
+      - CACHE_LOCAL_ENABLED=false
+      - WEBHOOK_GLOBAL_ENABLED=false
+    volumes:
+      - evolution_instances:/evolution/instances
+
+volumes:
+  minio_data:
+  postgres_data:
+  redis_data:
+  evolution_instances:

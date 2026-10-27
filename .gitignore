@@ -1,0 +1,25 @@
+# Environment credentials and local overrides
+.env
+.env.*
+!.env.example
+
+# Virtual environments, Python bytecode, and test/tool caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local database and runtime state
+*.db
+*.sqlite
+*.sqlite3
+logs/
+
+# User-provided WhatsApp tickets and generated uploads
+tickets/whatsapp/pending/*
+tickets/whatsapp/processed/*
+!tickets/whatsapp/pending/.gitkeep
+!tickets/whatsapp/processed/.gitkeep
